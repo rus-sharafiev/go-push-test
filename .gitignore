@@ -1,0 +1,8 @@
+# production
+go-push
+
+# IDE
+/.vscode
+
+# config
+config.json
