@@ -73,6 +73,15 @@ func (s service) handleEvents() {
 		if *push.Dep {
 			go s.getUserTokensAndSendByEvent(&push, "deposit_made_at", e)
 		}
+		if *push.FourHours {
+			go s.getUserTokensAndSendByInactivity(&push, "4", e)
+		}
+		if *push.HalfDay {
+			go s.getUserTokensAndSendByInactivity(&push, "12", e)
+		}
+		if *push.FullDay {
+			go s.getUserTokensAndSendByInactivity(&push, "24", e)
+		}
 	}
 
 	err = <-e

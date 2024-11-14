@@ -3,12 +3,16 @@ INSERT INTO adverts(email) VALUES ('mail@mail.com');
 INSERT INTO teams(id) VALUES (1);
 
 INSERT INTO users(id, advert_id, has_push_subscription, push_token)
-SELECT s.id, 1, random() < 0.5, gen_random_uuid()
-FROM generate_series(1,20) AS s(id);
+SELECT s.id, 1, random() < 0.20, gen_random_uuid()
+FROM generate_series(1,1000000) AS s(id);
 
 UPDATE users SET installed_at = current_timestamp WHERE id = 1;
-UPDATE users SET registered_at = (current_timestamp + '1 minute'::interval) WHERE id = 3;
-UPDATE users SET deposit_made_at = (current_timestamp + '2 minute'::interval) WHERE id = 8;
+UPDATE users SET registered_at = (current_timestamp + '1 minute'::interval) WHERE id = 2;
+UPDATE users SET deposit_made_at = (current_timestamp + '2 minute'::interval) WHERE id = 3;
+
+UPDATE users SET last_active_at = current_timestamp - '4 hour'::interval WHERE id = 1;
+UPDATE users SET last_active_at = current_timestamp - '12 hour'::interval WHERE id = 2;
+UPDATE users SET last_active_at = current_timestamp - '24 hour'::interval WHERE id = 3;
 
 INSERT INTO one_time_pushes(advert_id, data, scheduled_time) 
 VALUES (1, '{"title": "one_time_pushes", "notification": "text"}', current_timestamp);

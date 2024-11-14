@@ -84,6 +84,70 @@ func (s service) getUserTokensAndSendByEvent(push *EventPush, event string, e ch
 	}
 }
 
+func (s service) getUserTokensAndSendByInactivity(push *EventPush, timeInactive string, e chan error) {
+	query := `
+		SELECT count(*) FROM users 
+		WHERE advert_id = @id AND has_push_subscription = TRUE
+		AND last_active_at <= (current_timestamp - @timeInactive::interval)
+		AND last_active_at > (current_timestamp - @timeInactive::interval - '1 minute'::interval);
+	`
+	args := pgx.NamedArgs{
+		"id":           push.AdvertId,
+		"timeInactive": timeInactive + " hour",
+	}
+	var qty int
+	err := s.db.QueryRow(&query, args).Scan(&qty)
+	if err != nil {
+		e <- err
+		return
+	}
+
+	if qty == 0 {
+		return
+	}
+
+	take := 5
+	if Config.BatchSize != nil {
+		take = *Config.BatchSize
+	}
+	batches := qty/take + 1
+
+	for i := 0; i < batches; i++ {
+		go func() {
+			query := `
+				SELECT push_token FROM users 
+				WHERE advert_id = @id AND has_push_subscription = TRUE
+				AND last_active_at <= (current_timestamp - @timeInactive::interval)
+				AND last_active_at > (current_timestamp - @timeInactive::interval - '1 minute'::interval)
+				LIMIT @take OFFSET @skip;
+			`
+			args := pgx.NamedArgs{
+				"id":           push.AdvertId,
+				"timeInactive": timeInactive + " hour",
+				"take":         take,
+				"skip":         take * i,
+			}
+			rows, _ := s.db.Query(&query, args)
+			tokens, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (string, error) {
+				var n string
+				err := row.Scan(&n)
+				return n, err
+			})
+			if err != nil {
+				e <- err
+				return
+			}
+
+			if err := s.SendBatch(*push.Data, tokens); err != nil {
+				e <- err
+				return
+			}
+
+			e <- nil
+		}()
+	}
+}
+
 // - SCHEDULE ---------------------------------------------------------------------
 
 func (s service) getOneTimePushes(c chan []Push, e chan error) {

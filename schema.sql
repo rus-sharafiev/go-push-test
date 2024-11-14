@@ -25,8 +25,7 @@ CREATE TABLE users (
     installed_at TIMESTAMP WITH TIME ZONE,
     registered_at TIMESTAMP WITH TIME ZONE,
     deposit_made_at TIMESTAMP WITH TIME ZONE,
-    last_active_at TIMESTAMP WITH TIME ZONE,
-    last_push_sent_at TIMESTAMP WITH TIME ZONE
+    last_active_at TIMESTAMP WITH TIME ZONE
 );
 CREATE INDEX installed_at_idx ON users (installed_at) WHERE has_push_subscription = TRUE;
 CREATE INDEX registered_at_idx ON users (registered_at) WHERE has_push_subscription = TRUE;
